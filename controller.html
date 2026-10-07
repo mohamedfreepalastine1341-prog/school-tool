@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Made by Mohamed</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;font-family:'Courier New',monospace;color:#fff;overflow:hidden;height:100vh;}
+
+/* ── LOADER ── */
+.main-container{
+  position:fixed;inset:0;background:#000;
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+  transition:opacity 0.9s ease, transform 0.9s ease;
+}
+.main-container.hidden{
+  opacity:0;
+  transform:scale(1.04);
+  pointer-events:none;
+}
+.loader svg{width:min(90vw,500px);height:auto;}
+
+.grid-line{stroke:#0a3a4a;stroke-width:0.5;}
+.browser-frame{fill:none;stroke:#00ccff;stroke-width:2;}
+.browser-top{fill:#00ccff;opacity:0.15;}
+.loading-text{fill:#00ccff;font-size:12px;font-family:monospace;animation:blink 1s infinite;}
+.skeleton{fill:#0a3a4a;rx:4;animation:shimmer 1.5s infinite;}
+.trace-flow{fill:none;stroke:#00ccff;stroke-width:2;stroke-dasharray:20 10;animation:traceDash 2s linear infinite;}
+
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+@keyframes shimmer{0%,100%{opacity:0.4;}50%{opacity:0.8;}}
+@keyframes traceDash{to{stroke-dashoffset:-60;}}
+
+.loader-label{
+  position:absolute;bottom:30%;left:50%;transform:translateX(-50%);
+  color:#00ccff;font-family:'Courier New',monospace;font-size:13px;
+  letter-spacing:4px;animation:blink 1.2s infinite;
+}
+.made-by{
+  position:absolute;bottom:24%;left:50%;transform:translateX(-50%);
+  color:#ffffff55;font-family:'Courier New',monospace;font-size:11px;
+  letter-spacing:2px;
+}
+
+/* ── DASHBOARD ── */
+#dashboard{
+  display:none;height:100vh;
+  grid-template-rows:48px 1fr;
+  grid-template-columns:260px 1fr;
+  background:#000;
+  visibility:hidden;
+}
+#dashboard.visible{display:grid;visibility:visible;}
+
+/* topbar */
+.topbar{
+  grid-column:1/-1;
+  background:#000;border-bottom:1px solid #333;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+}
+.topbar-title{font-size:13px;letter-spacing:3px;color:#fff;}
+.topbar-sub{font-size:10px;color:#555;letter-spacing:2px;}
+.topbar-right{display:flex;gap:12px;align-items:center;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* sidebar */
+.sidebar{
+  background:#000;border-right:1px solid #222;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-header{
+  padding:16px;border-bottom:1px solid #222;
+  font-size:10px;letter-spacing:3px;color:#555;
+}
+.scan-btn{
+  margin:12px;padding:10px;
+  background:#fff;color:#000;
+  border:none;cursor:pointer;
+  font-family:'Courier New',monospace;font-size:12px;
+  letter-spacing:2px;font-weight:700;
+  transition:background 0.2s,color 0.2s;
+}
+.scan-btn:hover{background:#000;color:#fff;outline:1px solid #fff;}
+.scan-btn:disabled{background:#333;color:#666;cursor:not-allowed;}
+
+.host-list{flex:1;overflow-y:auto;padding:8px 0;}
+.host-list::-webkit-scrollbar{width:3px;}
+.host-list::-webkit-scrollbar-thumb{background:#333;}
+
+.host-item{
+  padding:10px 16px;cursor:pointer;border-left:3px solid transparent;
+  transition:all 0.15s;display:flex;flex-direction:column;gap:2px;
+}
+.host-item:hover{background:#111;border-left-color:#fff;}
+.host-item.selected{background:#111;border-left-color:#fff;}
+.host-name{font-size:12px;color:#fff;}
+.host-ip{font-size:10px;color:#555;}
+.host-badge{
+  font-size:9px;padding:1px 5px;background:#fff;color:#000;
+  letter-spacing:1px;align-self:flex-start;margin-top:2px;
+}
+
+.scan-progress{
+  margin:0 12px 8px;height:2px;background:#111;
+}
+.scan-bar{
+  height:100%;background:#fff;width:0%;
+  transition:width 0.1s linear;
+}
+
+/* main panel */
+.main-panel{
+  display:flex;flex-direction:column;overflow:hidden;
+  background:#000;
+}
+
+.target-header{
+  padding:16px 20px;border-bottom:1px solid #222;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.target-name{font-size:14px;letter-spacing:2px;color:#fff;}
+.target-ip{font-size:10px;color:#555;}
+
+/* action grid */
+.actions{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:#111;border-bottom:1px solid #222;
+}
+.action-btn{
+  padding:14px 10px;background:#000;
+  border:none;cursor:pointer;color:#fff;
+  font-family:'Courier New',monospace;font-size:11px;
+  letter-spacing:1px;transition:background 0.15s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+}
+.action-btn:hover{background:#111;}
+.action-btn:active{background:#1a1a1a;}
+.action-icon{font-size:18px;}
+.action-btn.danger:hover{background:#1a0000;}
+.action-btn.danger .action-icon{filter:grayscale(1);}
+
+.no-target{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  color:#333;font-size:12px;letter-spacing:3px;flex-direction:column;gap:12px;
+}
+.no-target-icon{font-size:32px;filter:grayscale(1)opacity(0.3);}
+
+/* log */
+.log-panel{
+  flex:1;overflow-y:auto;padding:12px 20px;
+  font-size:11px;color:#555;line-height:1.8;
+}
+.log-panel::-webkit-scrollbar{width:3px;}
+.log-panel::-webkit-scrollbar-thumb{background:#222;}
+.log-entry{display:flex;gap:10px;}
+.log-time{color:#333;flex-shrink:0;}
+.log-msg.ok{color:#fff;}
+.log-msg.warn{color:#888;}
+.log-msg.err{color:#555;}
+
+/* toast */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:#fff;color:#000;
+  padding:10px 18px;font-size:11px;letter-spacing:2px;
+  opacity:0;transform:translateY(8px);
+  transition:all 0.3s;pointer-events:none;z-index:100;
+}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* scan anim overlay on sidebar */
+.scanning-line{
+  position:absolute;left:0;width:100%;height:1px;
+  background:linear-gradient(90deg,transparent,#fff,transparent);
+  animation:scanLine 1.5s linear infinite;display:none;
+}
+@keyframes scanLine{from{top:48px;}to{top:100%;}}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="main-container" id="loader">
+  <div class="loader">
+    <svg viewBox="0 0 900 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="traceGradient1" x1="250" y1="120" x2="100" y2="200" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00ccff" stop-opacity="1"/>
+          <stop offset="100%" stop-color="#00ccff" stop-opacity="0.5"/>
+        </linearGradient>
+        <linearGradient id="traceGradient2" x1="650" y1="120" x2="800" y2="300" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00ccff" stop-opacity="1"/>
+          <stop offset="100%" stop-color="#00ccff" stop-opacity="0.5"/>
+        </linearGradient>
+        <linearGradient id="traceGradient3" x1="250" y1="380" x2="400" y2="400" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00ccff" stop-opacity="1"/>
+          <stop offset="100%" stop-color="#00ccff" stop-opacity="0.5"/>
+        </linearGradient>
+        <linearGradient id="traceGradient4" x1="650" y1="120" x2="500" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#00ccff" stop-opacity="1"/>
+          <stop offset="100%" stop-color="#00ccff" stop-opacity="0.5"/>
+        </linearGradient>
+      </defs>
+      <g id="grid">
+        <g>
+          <line x1="0" y1="0" x2="0" y2="100%" class="grid-line"/>
+          <line x1="100" y1="0" x2="100" y2="100%" class="grid-line"/>
+          <line x1="200" y1="0" x2="200" y2="100%" class="grid-line"/>
+          <line x1="300" y1="0" x2="300" y2="100%" class="grid-line"/>
+          <line x1="400" y1="0" x2="400" y2="100%" class="grid-line"/>
+          <line x1="500" y1="0" x2="500" y2="100%" class="grid-line"/>
+          <line x1="600" y1="0" x2="600" y2="100%" class="grid-line"/>
+          <line x1="700" y1="0" x2="700" y2="100%" class="grid-line"/>
+          <line x1="800" y1="0" x2="800" y2="100%" class="grid-line"/>
+          <line x1="900" y1="0" x2="900" y2="100%" class="grid-line"/>
+        </g>
+        <g>
+          <line x1="0" y1="100" x2="100%" y2="100" class="grid-line"/>
+          <line x1="0" y1="200" x2="100%" y2="200" class="grid-line"/>
+          <line x1="0" y1="300" x2="100%" y2="300" class="grid-line"/>
+          <line x1="0" y1="400" x2="100%" y2="400" class="grid-line"/>
+          <line x1="0" y1="500" x2="100%" y2="500" class="grid-line"/>
+          <line x1="0" y1="600" x2="100%" y2="600" class="grid-line"/>
+          <line x1="0" y1="700" x2="100%" y2="700" class="grid-line"/>
+          <line x1="0" y1="800" x2="100%" y2="800" class="grid-line"/>
+        </g>
+      </g>
+      <g id="browser" transform="translate(0,200)">
+        <rect x="250" y="120" width="400" height="260" rx="8" ry="8" class="browser-frame"/>
+        <rect x="250" y="120" width="400" height="30" rx="8" ry="8" class="browser-top"/>
+        <text x="294" y="140" text-anchor="middle" class="loading-text">Loading...</text>
+        <rect x="270" y="160" width="360" height="20" class="skeleton"/>
+        <rect x="270" y="190" width="200" height="15" class="skeleton"/>
+        <rect x="270" y="215" width="300" height="15" class="skeleton"/>
+        <rect x="270" y="240" width="360" height="90" class="skeleton"/>
+        <rect x="270" y="340" width="180" height="20" class="skeleton"/>
+      </g>
+      <g id="traces" transform="translate(0,200)">
+        <path d="M100 300 H250 V120" class="trace-flow"/>
+        <path d="M800 200 H650 V380" class="trace-flow"/>
+        <path d="M400 520 V380 H250" class="trace-flow"/>
+        <path d="M500 50 V120 H650" class="trace-flow"/>
+      </g>
+    </svg>
+  </div>
+  <div class="loader-label">INITIALIZING...</div>
+  <div class="made-by">made by Mohamed</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">NETWORK CONTROLLER</div>
+      <div class="topbar-sub">made by Mohamed</div>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:10px;color:#555;letter-spacing:2px;" id="host-count">0 HOSTS</span>
+      <div class="status-dot"></div>
+    </div>
+  </div>
+
+  <div class="sidebar" style="position:relative;">
+    <div class="scanning-line" id="scan-line"></div>
+    <div class="sidebar-header">DETECTED MACHINES</div>
+    <button class="scan-btn" id="scan-btn" onclick="startScan()">▶ START SCAN</button>
+    <div class="scan-progress"><div class="scan-bar" id="scan-bar"></div></div>
+    <div class="host-list" id="host-list">
+      <div style="padding:20px 16px;font-size:10px;color:#333;letter-spacing:2px;">
+        PRESS SCAN TO START
+      </div>
+    </div>
+  </div>
+
+  <div class="main-panel" id="main-panel">
+    <div class="no-target" id="no-target">
+      <div class="no-target-icon">🖥</div>
+      <div>SELECT A MACHINE</div>
+    </div>
+
+    <div id="target-view" style="display:none;flex-direction:column;flex:1;">
+      <div class="target-header">
+        <div>
+          <div class="target-name" id="target-name">—</div>
+          <div class="target-ip" id="target-ip">—</div>
+        </div>
+        <div style="font-size:10px;color:#333;letter-spacing:2px;">CONNECTED</div>
+      </div>
+
+      <div class="actions">
+        <button class="action-btn" onclick="sendAction('message')">
+          <span class="action-icon">💬</span>POPUP MSG
+        </button>
+        <button class="action-btn" onclick="sendAction('screenshot')">
+          <span class="action-icon">📸</span>SCREENSHOT
+        </button>
+        <button class="action-btn" onclick="sendAction('remote')">
+          <span class="action-icon">🖱</span>REMOTE VIEW
+        </button>
+        <button class="action-btn" onclick="sendAction('lockscreen')">
+          <span class="action-icon">🔒</span>LOCK SCREEN
+        </button>
+        <button class="action-btn" onclick="sendAction('openurl')">
+          <span class="action-icon">🌐</span>OPEN URL
+        </button>
+        <button class="action-btn danger" onclick="sendAction('shutdown')">
+          <span class="action-icon">⚡</span>SHUTDOWN
+        </button>
+      </div>
+
+      <div class="log-panel" id="log-panel"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── config ──
+const SERVER = 'http://localhost:5000'; // change to your IP if needed
+const SUBNET = ''; // auto-detected from server
+
+let selectedHost = null;
+let hosts = {};
+
+// ── loader ──
+window.addEventListener('load', () => {
+  // show dashboard behind loader so it's ready
+  document.getElementById('dashboard').classList.add('visible');
+
+  setTimeout(() => {
+    const loader = document.getElementById('loader');
+    loader.classList.add('hidden');
+    // remove from flow after transition ends
+    setTimeout(() => loader.style.display = 'none', 950);
+    log('System ready.','ok');
+    log('Press SCAN to detect machines on the network.','warn');
+  }, 4000);
+});
+
+// ── scan ──
+async function startScan(){
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = true;
+  btn.textContent = '⟳ SCANNING...';
+  document.getElementById('scan-line').style.display = 'block';
+  document.getElementById('host-list').innerHTML = '';
+  hosts = {};
+  updateCount();
+
+  const bar = document.getElementById('scan-bar');
+  let pct = 0;
+  const ticker = setInterval(()=>{
+    pct = Math.min(pct + Math.random()*3, 90);
+    bar.style.width = pct + '%';
+  }, 120);
+
+  log('Scan started...','ok');
+
+  try {
+    const res = await fetch(`${SERVER}/scan`);
+    const data = await res.json();
+    clearInterval(ticker);
+    bar.style.width = '100%';
+
+    if(data.hosts && data.hosts.length > 0){
+      data.hosts.forEach(h => addHost(h));
+      log(`Scan complete. ${data.hosts.length} machine(s) detected.`,'ok');
+    } else {
+      log('No machines found. Make sure server.py is running.','warn');
+      document.getElementById('host-list').innerHTML = '<div style="padding:20px 16px;font-size:10px;color:#333;letter-spacing:2px;">NO HOSTS FOUND</div>';
+    }
+  } catch(e) {
+    clearInterval(ticker);
+    log('Cannot reach server.py — is it running?','err');
+    // demo mode: add fake hosts for UI testing
+    demoHosts();
+  }
+
+  setTimeout(()=>{ bar.style.width='0%'; },1200);
+  document.getElementById('scan-line').style.display = 'none';
+  btn.disabled = false;
+  btn.textContent = '▶ SCAN AGAIN';
+}
+
+function demoHosts(){
+  const demo = [
+    {ip:'192.168.1.10',hostname:'PC-STUDENT-01'},
+    {ip:'192.168.1.11',hostname:'PC-STUDENT-02'},
+    {ip:'192.168.1.14',hostname:'PC-TEACHER-01'},
+    {ip:'192.168.1.20',hostname:'PC-STUDENT-03'},
+  ];
+  demo.forEach(h=>addHost(h));
+  log(`[DEMO MODE] ${demo.length} machines shown — run server.py for real scan.`,'warn');
+}
+
+function addHost(h){
+  hosts[h.ip] = h;
+  const list = document.getElementById('host-list');
+  const el = document.createElement('div');
+  el.className = 'host-item';
+  el.id = 'host-' + h.ip.replace(/\./g,'_');
+  el.onclick = () => selectHost(h.ip);
+  el.innerHTML = `
+    <div class="host-name">${h.hostname || 'UNKNOWN'}</div>
+    <div class="host-ip">${h.ip}</div>
+    <div class="host-badge">ONLINE</div>
+  `;
+  list.appendChild(el);
+  updateCount();
+  toast('PC DETECTED: ' + (h.hostname || h.ip));
+}
+
+function selectHost(ip){
+  document.querySelectorAll('.host-item').forEach(el=>el.classList.remove('selected'));
+  const el = document.getElementById('host-' + ip.replace(/\./g,'_'));
+  if(el) el.classList.add('selected');
+  selectedHost = hosts[ip];
+  document.getElementById('no-target').style.display = 'none';
+  document.getElementById('target-view').style.display = 'flex';
+  document.getElementById('target-name').textContent = selectedHost.hostname || 'UNKNOWN';
+  document.getElementById('target-ip').textContent = selectedHost.ip;
+  log(`Selected: ${selectedHost.hostname} (${selectedHost.ip})`,'ok');
+}
+
+// ── actions ──
+async function sendAction(action){
+  if(!selectedHost){ toast('SELECT A MACHINE FIRST'); return; }
+
+  let payload = {ip: selectedHost.ip, action};
+
+  if(action === 'message'){
+    const msg = prompt('Message to send to ' + selectedHost.hostname + ':');
+    if(!msg) return;
+    payload.data = msg;
+  }
+  if(action === 'openurl'){
+    const url = prompt('URL to open on ' + selectedHost.hostname + ':');
+    if(!url) return;
+    payload.data = url;
+  }
+  if(action === 'shutdown'){
+    if(!confirm('Shutdown ' + selectedHost.hostname + '?')) return;
+  }
+
+  log(`Sending [${action}] → ${selectedHost.hostname}...`,'warn');
+
+  try {
+    const res = await fetch(`${SERVER}/command`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data.status === 'ok'){
+      log(`[${action}] delivered to ${selectedHost.hostname}.`,'ok');
+      toast('COMMAND SENT');
+    } else {
+      log(`[${action}] failed: ${data.msg || 'unknown error'}`,'err');
+    }
+  } catch(e) {
+    log(`[${action}] — server unreachable (demo mode).`,'err');
+    toast('DEMO: ' + action.toUpperCase() + ' SENT');
+  }
+}
+
+// ── ui helpers ──
+function log(msg, type='ok'){
+  const panel = document.getElementById('log-panel');
+  const t = new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+  panel.appendChild(el);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function updateCount(){
+  document.getElementById('host-count').textContent = Object.keys(hosts).length + ' HOSTS';
+}
+</script>
+</body>
+</html>
+```
